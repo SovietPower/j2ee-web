@@ -1,0 +1,42 @@
+/* content为右边区域主要内容 */
+
+.extra {
+	height: 10px;
+}
+
+.layout {
+	max-width: 1225px;
+	margin: 0 auto;
+}
+
+.content {
+	width: 910px;
+	padding: 0px 50px 50px 50px;
+	background-color: #ffffff;
+	margin-bottom: 30px;
+}
+
+.content-title {
+	height: 100px;
+	display: flex;
+	align-items: center;
+}
+.content-title p {
+	font-size: 30px;
+	color: #757575;
+	/* margin-left: 50px; */
+}
+
+.content-body {
+	overflow: auto;
+	/* overflow: hidden; */
+	width: 910px;
+	margin: 0;
+}
+
+.content .not-found {
+	height: 500px;
+	text-align: center;
+	font-size: xx-large;
+}
+

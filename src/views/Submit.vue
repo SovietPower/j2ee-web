@@ -97,7 +97,16 @@
 							<!-- 货物信息 -->
 							<el-divider content-position="left">货物信息</el-divider>
 							<div style="margin: 12px;">
-								当前可用车辆：{{truckAvailable}}
+								当前可用车辆：
+								<span v-if="truckAvailable==0" style="color: red;">
+									暂无
+								</span>
+								<span v-else-if="truckAvailable<3" style="color:red">
+									较少
+								</span>
+								<span v-else style="color: #007a1a;">
+									充足
+								</span>
 							</div>
 							<el-form ref="orderForm" :model="orderForm" :rules="order_rule" :inline="false" label-width="80px">
 								<el-form-item prop="type" label="货物种类" style="width:400px">
@@ -326,6 +335,8 @@ export default {
 			distProvinces: ['请选择'],
 			distCities: ['请选择'],
 			distDistricts: ['请选择'],
+			// 筛选货物种类
+			// types: ['鲜花', '水果', '食物', '数码产品', '衣物', '易碎品', '日用品'],
 		}
 	},
 	created() {
@@ -366,6 +377,18 @@ export default {
 		},
 	},
 	methods: {
+		// querySearch(queryString, cb) {
+		// 	var types = this.types
+		// 	var results = queryString ? types.filter(this.createFilter(queryString)) : types
+		// 	// 调用 callback 返回建议列表的数据
+		// 	console.log(types, results)
+		// 	cb(results)
+		// },
+		// createFilter(queryString) {
+		// 	return (types) => {
+		// 		return (types.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0)
+		// 	}
+		// },
 		getDistricts(keyword, choose) {
 			if (keyword == '请选择') {
 				return

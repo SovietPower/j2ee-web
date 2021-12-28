@@ -44,14 +44,14 @@
 							</li>
 							<li>
 								<a
-									href="https://www.zybuluo.com/SovietPower/note/1916979"
+									href="https://github.com/SovietPower/j2ee-web"
 									target="_blank"
 									class="menu-a"
 								>项目地址（前端）</a>
 							</li>
 							<li>
 								<a
-									href="https://www.zybuluo.com/SovietPower/note/1916979"
+									href="https://github.com/SovietPower/j2ee"
 									target="_blank"
 									class="menu-a"
 								>项目地址（后端）</a>

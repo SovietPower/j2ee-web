@@ -183,6 +183,36 @@
 									<template #prepend>+86</template>
 								</el-input>
 							</el-form-item>
+
+							<!-- 地址选择器 -->
+							<el-form-item label="地址">
+								<el-select v-model="distProvince" placeholder="请选择">
+									<el-option
+										v-for="(item, index) in distProvinces"
+										:key="index"
+										:label="item"
+										:value="index">
+									</el-option>
+								</el-select>
+								<el-select v-model="distCity" placeholder="请选择">
+									<el-option
+										v-for="(item, index) in distCities"
+										:key="index"
+										:label="item"
+										:value="index">
+									</el-option>
+								</el-select>
+								<el-select v-model="distDistrict" placeholder="请选择">
+									<el-option
+										v-for="(item, index) in distDistricts"
+										:key="index"
+										:label="item"
+										:value="index">
+									</el-option>
+								</el-select>
+							</el-form-item>
+							<!-- 地址选择器END -->
+
 							<el-form-item prop="address" label="详细地址">
 								<el-input type="textarea" rows="5" v-model="addressForm.address" />
 							</el-form-item>
@@ -190,7 +220,7 @@
 						<template #footer>
 							<span class="dialog-footer">
 								<el-button @click="showAdd = false">取 消</el-button>
-								<el-button type="primary" @click="createAddress">确 定</el-button>
+								<el-button type="primary" @click="createAddress()">确 定</el-button>
 							</span>
 						</template>
 					</el-dialog>
@@ -206,6 +236,7 @@ import Sidebar from '../components/Sidebar'
 import * as AddressAPI from '@/api/address'
 import * as OrderAPI from '@/api/order'
 import * as TruckAPI from '@/api/truck'
+import * as AMapAPI from '@/api/sdk'
 import { ElMessage } from 'element-plus'
 
 export default {
@@ -215,8 +246,8 @@ export default {
 			if (value === '') {
 				callback(new Error('请输入收件人或发件人姓名'))
 			}
-			else if (/^[A-Za-z\p{Unified_Ideograph}]+$/u.test(value) == false) {
-				callback(new Error('请输入字母或汉字，不含标点符号'))
+			else if (/^[0-9A-Za-z\p{Unified_Ideograph}]+$/u.test(value) == false) {
+				callback(new Error('请输入数字、字母或汉字，不含标点符号'))
 			}
 			callback()
 		}
@@ -287,12 +318,20 @@ export default {
 				weight: [{validator: validateGoodsNumber, trigger: 'blur'}],
 				volume: [{validator: validateGoodsNumber, trigger: 'blur'}],
 				value: [{validator: validateGoodsNumber, trigger: 'blur'}],
-			}
+			},
+			// 地址选择器
+			distProvince: 0,
+			distCity: 0,
+			distDistrict: 0,
+			distProvinces: ['请选择'],
+			distCities: ['请选择'],
+			distDistricts: ['请选择'],
 		}
 	},
 	created() {
 		this.getAddress()
 		this.getTruckNum()
+		this.getDistricts('中国', 'p')
 		// getAddress 与 设置sender, receiver 应同步，但我搞不好async和await。。
 		setTimeout(() => {
 			if (this.address.length>0) {
@@ -314,7 +353,43 @@ export default {
 			seen: false,
 		}
 	},
+	watch: {
+		distProvince: function() {
+			this.getDistricts(this.distProvinces[this.distProvince], 'c')
+			this.distCity = 0
+			this.distDistrict = 0
+			this.distDistricts = ['请选择']
+		},
+		distCity: function() {
+			this.getDistricts(this.distCities[this.distCity], 'd')
+			this.distDistrict = 0
+		},
+	},
 	methods: {
+		getDistricts(keyword, choose) {
+			if (keyword == '请选择') {
+				return
+			}
+			AMapAPI
+				.getDistricts(keyword)
+				.then(res => {
+					if (res.status === 200) {
+						res.data.unshift('请选择')
+						if (choose == 'p') {
+							this.distProvinces = res.data
+						} else if (choose == 'c') {
+							this.distCities = res.data
+						} else {
+							this.distDistricts = res.data
+						}
+					} else {
+						ElMessage.error('获取地址列表失败：'+res.msg)
+					}
+				})
+				.catch(err => {
+					ElMessage.error('获取地址列表失败：'+err)
+				})
+		},
 		getTruckNum() {
 			TruckAPI
 				.getTruckByUser()
@@ -387,6 +462,9 @@ export default {
 			this.addressForm.name = ''
 			this.addressForm.phone = ''
 			this.addressForm.address = ''
+			this.distProvince = 0
+			this.distCity = 0
+			this.distDistrict = 0
 		},
 		mouseEnter(item) {
 			item.seen = true
@@ -411,12 +489,21 @@ export default {
 				})
 		},
 		createAddress() {
+			if (this.distProvince == 0 || this.distCity == 0 || (this.distDistricts.length>1 && this.distDistrict == 0)) {
+				ElMessage.error('请选择地址')
+				return
+			}
 			this.$refs.addressForm.validate(valid => {
 				if (!valid) {
 					ElMessage.error('请填写并确保内容合法')
 					return
 				}
 				this.addressForm.user_id = this.$store.getters.getUser.id
+				if (this.distDistricts.length>1) {
+					this.addressForm.address = this.distProvinces[this.distProvince] + ' ' + this.distCities[this.distCity] + ' ' + this.distDistricts[this.distDistrict] + ' ' + this.addressForm.address
+				} else {
+					this.addressForm.address = this.distProvinces[this.distProvince] + ' ' + this.distCities[this.distCity] + ' ' + this.addressForm.address
+				}
 				AddressAPI
 					.createAddress(this.addressForm)
 					.then(res => {
@@ -448,6 +535,11 @@ export default {
 <style scoped src="../style/content.css"></style>
 <style scoped>
 /* 注意:deep()的元素要从.submit，不要从.content */
+.submit :deep() .el-select {
+	width: 100px;
+    margin: 0 5px 0 5px;
+}
+
 .submit :deep() .el-divider__text {
     font-weight: 600;
     font-size: 20px;

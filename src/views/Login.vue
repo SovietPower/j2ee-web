@@ -117,9 +117,9 @@ export default {
 			else if (/^[a-zA-Z0-9]+$/.test(value) == false) {
 				callback(new Error('请输入字母或数字'))
 			}
-			// else if (value.length < 6 || value.length > 16) {
-			// 	callback(new Error('密码长度需在6到16位之间'))
-			// }
+			else if (value.length < 6 || value.length > 16) {
+				callback(new Error('密码长度需在6到16位之间'))
+			}
 			callback()
 		}
 		var validateCaptcha = (rule, value, callback) => {

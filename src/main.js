@@ -91,9 +91,11 @@ router.beforeResolve((to, from, next) => {
 
 app.use(store).use(router)
 
+
 // 自定义全局方法（不同于Vue 2.x）
 import Global from './Global'
 app.use(Global)
+
 
 // 自定义全局组件
 // import MyMenu from './components/MyMenu'

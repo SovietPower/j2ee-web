@@ -36,6 +36,8 @@
 								<div class="operation" v-show="item.seen">
 									<span @click="editPin(item)">{{item.pinned==true?'取消':''}}置顶</span>
 									<span @click="editInfo(item)">修改</span>
+									<!-- 需通过deleteDialog传入删除信息 -->
+									<!-- 注意这个el-popconfirm组件中不能有注释，否则会报错 ElementPlusError: [renderTrigger] trigger expects。。 -->
 									<el-popconfirm
 										title="确认要删除该地址吗？"
 										confirm-button-text="是"
@@ -44,7 +46,6 @@
 										@confirm="deleteAddress"
 									>
 										<template #reference>
-											<!-- 需通过deleteDialog传入删除信息 -->
 											<span @click="deleteDialog(item.id,index)">删除</span>
 										</template>
 									</el-popconfirm>
@@ -87,6 +88,36 @@
 									<template #prepend>+86</template>
 								</el-input>
 							</el-form-item>
+
+							<!-- 地址选择器 -->
+							<el-form-item label="地址">
+								<el-select v-model="distProvince" placeholder="请选择">
+									<el-option
+										v-for="(item, index) in distProvinces"
+										:key="index"
+										:label="item"
+										:value="index">
+									</el-option>
+								</el-select>
+								<el-select v-model="distCity" placeholder="请选择">
+									<el-option
+										v-for="(item, index) in distCities"
+										:key="index"
+										:label="item"
+										:value="index">
+									</el-option>
+								</el-select>
+								<el-select v-model="distDistrict" placeholder="请选择">
+									<el-option
+										v-for="(item, index) in distDistricts"
+										:key="index"
+										:label="item"
+										:value="index">
+									</el-option>
+								</el-select>
+							</el-form-item>
+							<!-- 地址选择器END -->
+
 							<el-form-item prop="address" label="详细地址">
 								<el-input type="textarea" rows="5" v-model="form.address" />
 							</el-form-item>
@@ -112,6 +143,36 @@
 									<template #prepend>+86</template>
 								</el-input>
 							</el-form-item>
+
+							<!-- 地址选择器 -->
+							<el-form-item label="地址">
+								<el-select v-model="distProvince" placeholder="请选择">
+									<el-option
+										v-for="(item, index) in distProvinces"
+										:key="index"
+										:label="item"
+										:value="index">
+									</el-option>
+								</el-select>
+								<el-select v-model="distCity" placeholder="请选择">
+									<el-option
+										v-for="(item, index) in distCities"
+										:key="index"
+										:label="item"
+										:value="index">
+									</el-option>
+								</el-select>
+								<el-select v-model="distDistrict" placeholder="请选择">
+									<el-option
+										v-for="(item, index) in distDistricts"
+										:key="index"
+										:label="item"
+										:value="index">
+									</el-option>
+								</el-select>
+							</el-form-item>
+							<!-- 地址选择器END -->
+
 							<el-form-item prop="address" label="详细地址">
 								<el-input type="textarea" rows="5" v-model="form.address"></el-input>
 							</el-form-item>
@@ -133,6 +194,7 @@
 <script>
 import Sidebar from '../components/Sidebar'
 import * as AddressAPI from '@/api/address'
+import * as AMapAPI from '@/api/sdk'
 import { ElMessage } from 'element-plus'
 
 export default {
@@ -142,8 +204,8 @@ export default {
 			if (value === '') {
 				callback(new Error('请输入收件人或发件人姓名'))
 			}
-			else if (/^[A-Za-z\p{Unified_Ideograph}]+$/u.test(value) == false) {
-				callback(new Error('请输入字母或汉字，不含标点符号'))
+			else if (/^[0-9A-Za-z\p{Unified_Ideograph}]+$/u.test(value) == false) {
+				callback(new Error('请输入数字、字母或汉字，不含标点符号'))
 			}
 			callback()
 		}
@@ -169,6 +231,15 @@ export default {
 			showEdit: false,
 			addressID: 0,
 			addressIndex: 0,
+
+			// 地址选择器
+			distProvince: 0,
+			distCity: 0,
+			distDistrict: 0,
+			distProvinces: ['请选择'],
+			distCities: ['请选择'],
+			distDistricts: ['请选择'],
+
 			form: { // 用于发送到后端以更新地址
 				id: '', // 在数据库中的编号，用于更新
 				user_id: '',
@@ -186,13 +257,53 @@ export default {
 	},
 	created() {
 		this.getAddress()
+		this.getDistricts('中国', 'p')
+	},
+	watch: {
+		distProvince: function() {
+			this.getDistricts(this.distProvinces[this.distProvince], 'c')
+			this.distCity = 0
+			this.distDistrict = 0
+			this.distDistricts = ['请选择']
+		},
+		distCity: function() {
+			this.getDistricts(this.distCities[this.distCity], 'd')
+			this.distDistrict = 0
+		},
 	},
 	methods: {
+		getDistricts(keyword, choose) {
+			if (keyword == '请选择') {
+				return
+			}
+			AMapAPI
+				.getDistricts(keyword)
+				.then(res => {
+					if (res.status === 200) {
+						res.data.unshift('请选择')
+						if (choose == 'p') {
+							this.distProvinces = res.data
+						} else if (choose == 'c') {
+							this.distCities = res.data
+						} else {
+							this.distDistricts = res.data
+						}
+					} else {
+						ElMessage.error('获取地址列表失败：'+res.msg)
+					}
+				})
+				.catch(err => {
+					ElMessage.error('获取地址列表失败：'+err)
+				})
+		},
 		readyToAdd() {
 			this.showAdd=true
 			this.form.name = ''
 			this.form.phone = ''
 			this.form.address = ''
+			this.distProvince = 0
+			this.distCity = 0
+			this.distDistrict = 0
 		},
 		getAddress() {
 			AddressAPI
@@ -228,6 +339,9 @@ export default {
 			// 注意应使用item的副本（深拷贝），否则修改form时，会同时修改item的内容（结构体赋值拷贝是传地址）。
 			// this.form = item
 			this.form = this.deepCopy(item)
+			this.distProvince = 0
+			this.distCity = 0
+			this.distDistrict = 0
 		},
 		editPin(item) {
 			let cancel = item.pinned==true?'取消':''
@@ -254,12 +368,21 @@ export default {
 				})
 		},
 		createAddress() {
+			if (this.distProvince == 0 || this.distCity == 0 || (this.distDistricts.length>1 && this.distDistrict == 0)) {
+				ElMessage.error('请选择地址')
+				return
+			}
 			this.$refs.form.validate(valid => {
 				if (!valid) {
 					ElMessage.error('请填写并确保内容合法')
 					return
 				}
 				this.form.user_id = this.$store.getters.getUser.id
+				if (this.distDistricts.length>1) {
+					this.form.address = this.distProvinces[this.distProvince] + ' ' + this.distCities[this.distCity] + ' ' + this.distDistricts[this.distDistrict] + ' ' + this.form.address
+				} else {
+					this.form.address = this.distProvinces[this.distProvince] + ' ' + this.distCities[this.distCity] + ' ' + this.form.address
+				}
 				AddressAPI
 					.createAddress(this.form)
 					.then(res => {
@@ -282,12 +405,21 @@ export default {
 			})
 		},
 		modifyAddress() {
+			if (this.distProvince == 0 || this.distCity == 0 || (this.distDistricts.length>1 && this.distDistrict == 0)) {
+				ElMessage.error('请选择地址')
+				return
+			}
 			this.$refs.form.validate(valid => {
 				if (!valid) {
 					ElMessage.error('请填写并确保内容合法')
 					return
 				}
 				this.form.user_id = this.$store.getters.getUser.id
+				if (this.distDistricts.length>1) {
+					this.form.address = this.distProvinces[this.distProvince] + ' ' + this.distCities[this.distCity] + ' ' + this.distDistricts[this.distDistrict] + ' ' + this.form.address
+				} else {
+					this.form.address = this.distProvinces[this.distProvince] + ' ' + this.distCities[this.distCity] + ' ' + this.form.address
+				}
 				AddressAPI
 					.updateAddress(this.form)
 					.then(res => {
@@ -338,6 +470,11 @@ export default {
 
 <style scoped src="../style/content.css"></style>
 <style scoped>
+.address :deep() .el-select {
+	width: 100px;
+    margin: 0 5px 0 5px;
+}
+
 .address :deep() .el-descriptions {
 	margin: 20px 2px;
 }

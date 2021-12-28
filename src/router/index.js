@@ -3,7 +3,6 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 // import Home from '../views/Home.vue' // 更推荐用下面的形式，效率更高。此外更推荐在component处写箭头函数，这样只在需要时import。
 // const Home = () => import('../views/Home.vue')
 // const About = () => import(/* webpackChunkName: "about" */ '../views/About.vue')
-// const NotFound = () => import('../views/NotFound.vue')
 
 const routes = [
 	{ path:'/', redirect:'/login'},
